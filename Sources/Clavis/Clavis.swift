@@ -6,6 +6,16 @@ public class Clavis {
     
     public class Generator {
         
+        /**
+         Generates a license.
+         
+         - parameters:
+            - privateKey: The private RSA key as a `String` in PEM format, which is used to sign the `keyMessage`.
+            - keyMessage: The plaintext, which will be signed by the `privateKey`. This can be the persons name, for whom the license should be issued.
+         
+         - returns:
+         A the generated license as a `String`.
+         */
         public static func license(privateKey privateKeyString: String, keyMessage: String) throws -> String {
             let privateKey = try CryptorRSA.createPrivateKey(withPEM: privateKeyString)
             
@@ -20,14 +30,17 @@ public class Clavis {
     
     public class Validator {
         
-        public static func hasValidLicense(publicKey publicKeyString: String) throws -> Bool {
-            if let storedLicense = Keychain.getLicense() {
-                return try isValid(license: storedLicense.license, plaintext: storedLicense.plaintext, publicKey: publicKeyString)
-            }
-            return false
-        }
-        
-        
+        /**
+         Checks if the given license is valid and if so stores the valid license in the keychain.
+         
+         - parameters:
+            - license: The license to be validated in `String` format.
+            - plaintext: The plaintext, against which the license should be verified.
+            - publicKey: The public RSA key as a `String` in PEM format, which is used to verify the license.
+         
+         - returns:
+         A `Bool` value, indicating whether the given license is valid.
+         */
         public static func isValid(license licenseString: String, plaintext plaintextString: String, publicKey publicKeyString: String) throws -> Bool {
             // Create key
             let publicKey = try CryptorRSA.createPublicKey(withPEM: publicKeyString)
@@ -47,6 +60,23 @@ public class Clavis {
             
             return isValidLicense
         }
+        
+        
+        /**
+         Checks, whether there is a valid license stored in the keychain.
+         
+         - parameters:
+            - publicKey: The public RSA key as a `String` in PEM format, which is used to verify the license.
+         
+         - returns:
+         Returns a `Bool` value, indicating whether there is a valid license stored in the keychain.
+         */
+        public static func hasValidLicense(publicKey publicKeyString: String) throws -> Bool {
+            if let storedLicense = Keychain.getLicense() {
+                return try isValid(license: storedLicense.license, plaintext: storedLicense.plaintext, publicKey: publicKeyString)
+            }
+            return false
+        }
     }
     
     
@@ -59,6 +89,13 @@ public class Clavis {
             var plaintext: String
         }
         
+        
+        /**
+         Stores a `License` object in the keychain.
+         
+         - parameters:
+            - license: The `License` object, which should be stored in the keychain
+         */
         static func addLicense(_ license: License) {
             guard let licenseId = getLicenseId() else { return }
             guard let licenseData = try? PropertyListEncoder().encode(license) else { return }
@@ -74,6 +111,12 @@ public class Clavis {
         }
         
         
+        /**
+         Gets the `License` stored in the keychain.
+         
+         - returns:
+         The `License` object, if one was stored and found, otherwise `nil`.
+         */
         static func getLicense() -> License? {
             guard let licenseId = getLicenseId()  else { return nil }
             let getQuery: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
@@ -94,7 +137,10 @@ public class Clavis {
         }
         
         
-        static func removeLicense() {
+        /**
+         Removes the `License` stored in the keychain.
+         */
+        public static func removeLicense() {
             guard let licenseId = getLicenseId()  else { return }
             let searchQuery: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                               kSecAttrLabel as String: licenseId]
@@ -105,6 +151,10 @@ public class Clavis {
         }
         
         
+        /**
+         - returns:
+         The identifier for the keychain item, which is used to store the license.
+         */
         static func getLicenseId() -> String? {
             guard let bundleId = Bundle.main.bundleIdentifier else { return nil }
             let licenseId = bundleId + ".license"
