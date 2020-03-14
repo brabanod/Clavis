@@ -23,10 +23,14 @@ Read more on licensing an application [here](https://stackoverflow.com/a/1442757
 To use Clavis, you need a public an a private RSA Key. You can generate them using the `openssl` command line utility.
 
 Generate private key using
-`openssl genrsa -out private.pem 2048`
+```
+openssl genrsa -out private.pem 2048
+```
 
 Generate public key using
-`openssl rsa -in private.pem -outform PEM -pubout -out public.pem`
+```
+openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+```
 
 
 ### Generate Licenses
