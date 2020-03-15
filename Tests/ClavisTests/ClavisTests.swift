@@ -101,16 +101,16 @@ class ClavisTests: XCTestCase {
     
     func testEncryptDecryptDate() throws {
         let date = Date()
-        guard let dateEncrypted = try? Clavis.Generator.encrypt(date: Date(), with: publicKey.removeSecKeyComments()) else { XCTFail("Encrypt shouldn't return nil."); return }
-        guard let dateDecrypted = try Clavis.Generator.decrypt(date: dateEncrypted, with: publicKey.removeSecKeyComments()) else { XCTFail("Decrypt shouldn't return nil."); return }
+        guard let dateEncrypted = try? LicenseController.encrypt(date: Date(), with: publicKey.removeSecKeyComments()) else { XCTFail("Encrypt shouldn't return nil."); return }
+        guard let dateDecrypted = try LicenseController.decrypt(date: dateEncrypted, with: publicKey.removeSecKeyComments()) else { XCTFail("Decrypt shouldn't return nil."); return }
         
         XCTAssertEqual(ISO8601DateFormatter().string(from: date), ISO8601DateFormatter().string(from: dateDecrypted))
     }
     
     
     func testEncryptDecryptDateUnlimited() throws {
-        guard let dateEncrypted = try? Clavis.Generator.encrypt(date: nil, with: publicKey.removeSecKeyComments()) else { XCTFail("Encrypt shouldn't return nil."); return}
-        let dateDecrypted = try Clavis.Generator.decrypt(date: dateEncrypted, with: publicKey.removeSecKeyComments())
+        guard let dateEncrypted = try? LicenseController.encrypt(date: nil, with: publicKey.removeSecKeyComments()) else { XCTFail("Encrypt shouldn't return nil."); return}
+        let dateDecrypted = try LicenseController.decrypt(date: dateEncrypted, with: publicKey.removeSecKeyComments())
         
         XCTAssertNil(dateDecrypted)
     }
@@ -118,7 +118,7 @@ class ClavisTests: XCTestCase {
     
     func testEncryptDecryptDateWrongInput() throws {
         do {
-            let _ = try Clavis.Generator.decrypt(date: "gibberish", with: publicKey.removeSecKeyComments())
+            let _ = try LicenseController.decrypt(date: "gibberish", with: publicKey.removeSecKeyComments())
             XCTFail("Should throw error")
         } catch let error {
             print(error)
