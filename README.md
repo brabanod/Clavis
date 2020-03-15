@@ -34,10 +34,13 @@ openssl rsa -in private.pem -outform PEM -pubout -out public.pem
 
 
 ### Generate Licenses
-To generate a license, you will need the private key and a message, which will be encrypted in the license. This can be the name or the email or a combination of both of the person, for whom the license was issued.
+To generate a license, you will need the private key and a message, which will be encrypted in the license. This can be the name or the email or a combination of both of the person, for whom the license was issued. The license can be limited by specifying an expiration date. If no expiration date is specified, then the license is unlimited.
 ```swift
 let plaintext = "John Doe"
-let license = try Clavis.Generator.license(privateKey: privateKey, keyMessage: plaintext)
+let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext)
+
+let todayPlusOneDay = Date().addingTimeInterval(24*3600.0)
+let licenseLimited = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: todayPlusOneDay)
 ```
 
 
