@@ -25,7 +25,10 @@ extension SymmetricKey {
      */
     init(string keyString: String, size: SymmetricKeySize = .bits128) throws {
         // Create base64 encoded Data from String
-        guard var keyData = Data(base64Encoded: keyString, options: .ignoreUnknownCharacters) else { throw CryptoKitError.incorrectParameterSize }
+        guard var keyData = Data(base64Encoded: keyString, options: .ignoreUnknownCharacters) else {
+            print("Could not create base64 encoded Data from String.")
+            throw CryptoKitError.incorrectParameterSize
+        }
         
         // Only take the first n bits of keyData, specified by the size
         let keySizeBytes = size.bitCount / 8
