@@ -1,10 +1,17 @@
 import Foundation
 import CryptorRSA
+import CryptoKit
 
 public class Clavis {
     
     
     public class Generator {
+        
+        public enum CipherError: Error {
+            case failedCreatingKey(String)
+            case failedDateEncryption(String)
+            case failedDateDecryption(String)
+        }
         
         /**
          Generates a license.
@@ -22,6 +29,110 @@ public class Clavis {
             let plainLicense = try CryptorRSA.createPlaintext(with: keyMessage, using: .utf8)
             let licenseSigned = try plainLicense.signed(with: privateKey, algorithm: .sha256)!
             return licenseSigned.data.base64EncodedString()
+        }
+        
+        
+        /** A fixed `String`, indicating that a license doesn't have an expiration date. */
+        private static let noExpirationDateString = "NoExpiration"
+        
+        
+        /**
+         Encrypts a given `Date` with a key to a base64 encoded `String`.
+         
+         - parameters:
+            - date: Optional `Date` object to be encrypted. If is `nil`, then the `noExpirationDateString` will be encrypted.
+            - keyString: The key to decrypt the date.
+         
+         - returns:
+         The `date` or `noExpirationDateString` encrypted using the key as a base64 encoded `String`.
+         
+         - throws:
+         Throws errors when failed to encrypt data.
+         */
+        static func encrypt(date: Date?, with keyString: String) throws -> String?  {
+            // Create key from keyString
+            let key = try createSymKey(from: keyString)
+                        
+            // Format date to String, if date not given -> no expiration
+            var dateString = noExpirationDateString
+            if date != nil {
+                dateString = ISO8601DateFormatter().string(from: date!)
+            }
+            
+            // Create data from date
+            guard let dateData = dateString.data(using: .utf8) else { throw CipherError.failedDateEncryption("Failed to create Data from Date String.") }
+            
+            // Encrypt dateData using the key
+            let encryptedData = try AES.GCM.seal(dateData, using: key)
+            
+            guard let encryptedDataString = encryptedData.combined?.base64EncodedString() else { throw CipherError.failedDateEncryption("Failed to get base64 encoded String from encrypted Data.")}
+            return encryptedDataString
+        }
+        
+        
+        /**
+         Decrypts a given `String` with a key to `Date`.
+         
+         - parameters:
+            - date: The possible `Date` as decrypted base64 `String`
+            - keyString: The key to decrypt the date.
+         
+         - returns:
+         The decrypted expiration date or `nil`, if the expiration Date is unlimited.
+         
+         - throws:
+         Throws errors when decryption failed or when it's not a `Date` but also not the `noExpirationDateString`.
+         */
+        static func decrypt(date encryptedString: String, with keyString: String) throws -> Date? {
+            // Create key from keyString
+            let key = try createSymKey(from: keyString)
+            
+            // Convert encryptedString to a suitable format for decryption
+            guard let encryptedData = Data(base64Encoded: encryptedString) else { throw CipherError.failedDateDecryption("Couldn't create Data from given base64 encoded date String.") }
+            let sealedBox = try AES.GCM.SealedBox(combined: encryptedData)
+            
+            // Decrypt data
+            let decryptedData = try AES.GCM.open(sealedBox, using: key)
+            guard let decryptedString = String(data: decryptedData, encoding: .utf8) else { throw CipherError.failedDateDecryption("Failed to convert decrypted data to String.") }
+            
+            // Decrypt date
+            if decryptedString == noExpirationDateString {
+                // Return nil if expiration date is unlimited
+                return nil
+            } else {
+                // Return date if it is decodable from the String. Throw error otherwise
+                guard let date = ISO8601DateFormatter().date(from: decryptedString) else { throw CipherError.failedDateDecryption("Failed to decode Date from decrypted String.") }
+                return date
+            }
+        }
+        
+        
+        /**
+         Create a `SymmetricKey` from a `String`.
+         
+         - parameters:
+            - keyString: The base64 encoded `String`, which should be used to create the `SymmetricKey`.
+            - size: The size as `SymmetricKeySize` used to truncate the possibly to long `keyString`.
+         
+         - returns:
+         A `SymmetricKey`.
+         
+         - throws:
+         Throws errors, when creating the key from the given `String` isn't successful.
+         */
+        static func createSymKey(from keyString: String, size: SymmetricKeySize = .bits128) throws -> SymmetricKey {
+            // Create base64 encoded Data from String
+            guard var keyData = keyString.data(using: .utf8)?.base64EncodedData() else { throw CipherError.failedCreatingKey("Couldn't create Data from key String.") }
+            
+            // Only take the first n bits of keyData, specified by the size
+            keyData = keyData.subdata(in: 0..<size.bitCount)
+            
+            // Check if key is big enough for given size
+            guard keyData.count >= size.bitCount else { throw CipherError.failedCreatingKey("Key too small for given size \(size.bitCount).") }
+            
+            // Create key from Data
+            let key = SymmetricKey(data: keyData)
+            return key
         }
     }
     
