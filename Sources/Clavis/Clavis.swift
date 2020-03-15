@@ -18,17 +18,22 @@ public class Clavis {
          
          - parameters:
             - privateKey: The private RSA key as a `String` in PEM format, which is used to sign the `keyMessage`.
+            - publicKey: The public RSA key as a `String` in PEM format, which is used to encrypt the `expirationDate`.
             - keyMessage: The plaintext, which will be signed by the `privateKey`. This can be the persons name, for whom the license should be issued.
+            - expirationDate: The date, when this specific license should expire. Set to `nil` if the license is unlimited.
          
          - returns:
          A the generated license as a `String`.
          */
-        public static func license(privateKey privateKeyString: String, keyMessage: String) throws -> String {
+        public static func license(privateKey privateKeyString: String, publicKey publicKeyString: String, keyMessage: String, expirationDate: Date?) throws -> String {
             let privateKey = try CryptorRSA.createPrivateKey(withPEM: privateKeyString)
             
             let plainLicense = try CryptorRSA.createPlaintext(with: keyMessage, using: .utf8)
             let licenseSigned = try plainLicense.signed(with: privateKey, algorithm: .sha256)!
-            return licenseSigned.data.base64EncodedString()
+            let licenseSignedString = licenseSigned.data.base64EncodedString()
+            
+            // Compose license message using keyMessage and encrypted expiration date
+            return try LicenseController.composeLicense(publicKey: publicKeyString, licenseString: licenseSignedString, expirationDate: expirationDate)
         }
     }
     
@@ -47,16 +52,27 @@ public class Clavis {
          
          - returns:
          A `Bool` value, indicating whether the given license is valid.
+         
+         - throws:
+         Throws errors, when creating key, decomposing license or verifying license failed. In most cases it's because the license is invalid.
          */
         public static func isValid(license licenseString: String, plaintext plaintextString: String, publicKey publicKeyString: String) throws -> Bool {
             // Create key
             let publicKey = try CryptorRSA.createPublicKey(withPEM: publicKeyString)
             
+            // Decompose license
+            let (licenseDate, licenseIdent) = try LicenseController.decomposeLicense(publicKey: publicKeyString, licenseString: licenseString)
+            
+            // Verify expiration date
+            if licenseDate != nil, licenseDate! <= Date() {
+                return false
+            }
+            
             // Create Plaintext object
             let plaintext = try CryptorRSA.createPlaintext(with: plaintextString, using: .utf8)
             
             // Create License object
-            guard let licenseData = Data(base64Encoded: licenseString) else { return false }
+            guard let licenseData = Data(base64Encoded: licenseIdent) else { return false }
             let license = CryptorRSA.SignedData(with: licenseData)
             
             // Verify with public key, that license is equal to plaintext

@@ -72,18 +72,18 @@ class ClavisTests: XCTestCase {
     }
     
     
-    func testGenerateValidate() throws {
+    func testGenerateValidateUnlimited() throws {
         let plaintext = "test message"
-        let license = try Clavis.Generator.license(privateKey: privateKey, keyMessage: plaintext)
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: nil)
         let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
         
         XCTAssertEqual(validationResult, true)
     }
     
     
-    func testStoredLicense() throws {
+    func testStoredLicenseUnlimited() throws {
         let plaintext = "test message"
-        let license = try Clavis.Generator.license(privateKey: privateKey, keyMessage: plaintext)
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: nil)
         let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
         
         XCTAssertEqual(validationResult, true)
@@ -91,6 +91,72 @@ class ClavisTests: XCTestCase {
         // Validate with stored license
         let validateAgain = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
         XCTAssertEqual(validateAgain, true)
+        
+        // Validate with removed license
+        Clavis.Keychain.removeLicense()
+        let validateAgainRemoved = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
+        XCTAssertEqual(validateAgainRemoved, false)
+    }
+    
+    
+    func testGenerateValidateLimitedValid() throws {
+        // Expiration Date in one minute (will expire in one minute, thus still valid)
+        let expirationDate = Date() + 60.0
+        
+        let plaintext = "test message"
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: expirationDate)
+        let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
+        
+        XCTAssertEqual(validationResult, true)
+    }
+    
+    
+    func testStoredLicenseLimitedValid() throws {
+        // Expiration Date in one minute (will expire in one minute, thus still valid)
+        let expirationDate = Date() + 60.0
+        
+        let plaintext = "test message"
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: expirationDate)
+        let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
+        
+        XCTAssertEqual(validationResult, true)
+        
+        // Validate with stored license
+        let validateAgain = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
+        XCTAssertEqual(validateAgain, true)
+        
+        // Validate with removed license
+        Clavis.Keychain.removeLicense()
+        let validateAgainRemoved = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
+        XCTAssertEqual(validateAgainRemoved, false)
+    }
+    
+    
+    func testGenerateValidateLimitedInvalid() throws {
+        // Expiration Date before one minute (did expire one minute ago, thus invalid)
+        let expirationDate = Date() - 60.0
+        
+        let plaintext = "test message"
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: expirationDate)
+        let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
+        
+        XCTAssertEqual(validationResult, false)
+    }
+    
+    
+    func testStoredLicenseLimitedInvalid() throws {
+        // Expiration Date before one minute (did expire one minute ago, thus invalid)
+        let expirationDate = Date() - 60.0
+        
+        let plaintext = "test message"
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: expirationDate)
+        let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
+        
+        XCTAssertEqual(validationResult, false)
+        
+        // Validate with stored license
+        let validateAgain = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
+        XCTAssertEqual(validateAgain, false)
         
         // Validate with removed license
         Clavis.Keychain.removeLicense()
