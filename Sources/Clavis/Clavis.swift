@@ -25,7 +25,7 @@ public class Clavis {
          - returns:
          A the generated license as a `String`.
          */
-        public static func license(privateKey privateKeyString: String, publicKey publicKeyString: String, keyMessage: String, expirationDate: Date?) throws -> String {
+        public static func license(privateKey privateKeyString: String, publicKey publicKeyString: String, keyMessage: String, expirationDate: Date? = nil) throws -> String {
             let privateKey = try CryptorRSA.createPrivateKey(withPEM: privateKeyString)
             
             let plainLicense = try CryptorRSA.createPlaintext(with: keyMessage, using: .utf8)

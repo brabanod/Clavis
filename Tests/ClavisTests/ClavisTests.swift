@@ -83,7 +83,7 @@ class ClavisTests: XCTestCase {
     
     func testStoredLicenseUnlimited() throws {
         let plaintext = "test message"
-        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext, expirationDate: nil)
+        let license = try Clavis.Generator.license(privateKey: privateKey, publicKey: publicKey, keyMessage: plaintext)
         let validationResult = try Clavis.Validator.isValid(license: license, plaintext: plaintext, publicKey: publicKey)
         
         XCTAssertEqual(validationResult, true)
