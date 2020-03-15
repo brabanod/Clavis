@@ -1,6 +1,6 @@
 //
 //  ClavisTests.swift
-//  clavis
+//  Clavis
 //
 //  Created by Pascal Braband on 14.03.20.
 //  Copyright © 2019 Pascal Braband. All rights reserved.
@@ -8,6 +8,7 @@
 
 import XCTest
 @testable import Clavis
+import CryptoKit
 
 class ClavisTests: XCTestCase {
     
@@ -89,11 +90,56 @@ class ClavisTests: XCTestCase {
         
         // Validate with stored license
         let validateAgain = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
-        XCTAssertEqual(validationResult, true)
+        XCTAssertEqual(validateAgain, true)
         
         // Validate with removed license
         Clavis.Keychain.removeLicense()
         let validateAgainRemoved = try Clavis.Validator.hasValidLicense(publicKey: publicKey)
         XCTAssertEqual(validateAgainRemoved, false)
+    }
+    
+    
+    func testEncryptDecryptDate() throws {
+        let date = Date()
+        guard let dateEncrypted = try? Clavis.Generator.encrypt(date: Date(), with: publicKey.removeSecKeyComments()) else { XCTFail("Encrypt shouldn't return nil."); return }
+        guard let dateDecrypted = try Clavis.Generator.decrypt(date: dateEncrypted, with: publicKey.removeSecKeyComments()) else { XCTFail("Decrypt shouldn't return nil."); return }
+        
+        XCTAssertEqual(ISO8601DateFormatter().string(from: date), ISO8601DateFormatter().string(from: dateDecrypted))
+    }
+    
+    
+    func testEncryptDecryptDateUnlimited() throws {
+        guard let dateEncrypted = try? Clavis.Generator.encrypt(date: nil, with: publicKey.removeSecKeyComments()) else { XCTFail("Encrypt shouldn't return nil."); return}
+        let dateDecrypted = try Clavis.Generator.decrypt(date: dateEncrypted, with: publicKey.removeSecKeyComments())
+        
+        XCTAssertNil(dateDecrypted)
+    }
+    
+    
+    func testEncryptDecryptDateWrongInput() throws {
+        do {
+            let _ = try Clavis.Generator.decrypt(date: "gibberish", with: publicKey.removeSecKeyComments())
+            XCTFail("Should throw error")
+        } catch let error {
+            print(error)
+        }
+    }
+    
+    
+    func testBase64EncodeDecode() {
+        // Create Base64 encoded String from a cleartext String
+        let cleartext = "this is a simple test"
+        guard let cleartextDataUTF8 = cleartext.data(using: .utf8) else { XCTFail("Failed to create Base64 Data from String"); return }
+        let cleartextDataBase64String = cleartextDataUTF8.base64EncodedString()
+        
+        print("\n\"\(cleartext)\" encoded in Base64 String:\n\(cleartextDataBase64String)\n")
+        
+        // Decode Base64 encoded String to a cleartext String
+        guard let cleartextDecodedData = Data(base64Encoded: cleartextDataBase64String) else { return }
+        guard let cleartextDecodedString = String(data: cleartextDecodedData, encoding: .utf8) else { return }
+        
+        print("\n\"\(cleartextDecodedString)\" decoded from Base64 String:\n\(cleartextDataBase64String)\n")
+        
+        XCTAssertEqual(cleartext, cleartextDecodedString)
     }
 }

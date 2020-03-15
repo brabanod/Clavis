@@ -49,7 +49,7 @@ public class Clavis {
          - throws:
          Throws errors when failed to encrypt data.
          */
-        static func encrypt(date: Date?, with keyString: String) throws -> String?  {
+        static func encrypt(date: Date?, with keyString: String) throws -> String  {
             // Create key from keyString
             let key = try createSymKey(from: keyString)
                         
@@ -88,7 +88,7 @@ public class Clavis {
             let key = try createSymKey(from: keyString)
             
             // Convert encryptedString to a suitable format for decryption
-            guard let encryptedData = Data(base64Encoded: encryptedString) else { throw CipherError.failedDateDecryption("Couldn't create Data from given base64 encoded date String.") }
+            guard let encryptedData = Data(base64Encoded: encryptedString) else { throw CipherError.failedDateDecryption("Could not create Data from given base64 encoded date String.") }
             let sealedBox = try AES.GCM.SealedBox(combined: encryptedData)
             
             // Decrypt data
@@ -122,13 +122,14 @@ public class Clavis {
          */
         static func createSymKey(from keyString: String, size: SymmetricKeySize = .bits128) throws -> SymmetricKey {
             // Create base64 encoded Data from String
-            guard var keyData = keyString.data(using: .utf8)?.base64EncodedData() else { throw CipherError.failedCreatingKey("Couldn't create Data from key String.") }
+            guard var keyData = Data(base64Encoded: keyString, options: .ignoreUnknownCharacters) else { throw CipherError.failedCreatingKey("Could not create Data from key String.") }
             
             // Only take the first n bits of keyData, specified by the size
-            keyData = keyData.subdata(in: 0..<size.bitCount)
+            let keySizeBytes = size.bitCount / 8
+            keyData = keyData.subdata(in: 0..<keySizeBytes)
             
             // Check if key is big enough for given size
-            guard keyData.count >= size.bitCount else { throw CipherError.failedCreatingKey("Key too small for given size \(size.bitCount).") }
+            guard keyData.count >= keySizeBytes else { throw CipherError.failedCreatingKey("Key too small for given size \(size.bitCount).") }
             
             // Create key from Data
             let key = SymmetricKey(data: keyData)
