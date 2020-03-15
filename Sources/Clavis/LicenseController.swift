@@ -102,7 +102,7 @@ class LicenseController {
     static func decomposeLicense(publicKey publicKeyString: String, licenseString: String) throws -> (Date?, String) {
         let licenseParts = licenseString.split(separator: "-").map({ String($0) })
         guard licenseParts.count == 2 else { throw LicenseError.failedDecomposingLicense("License not separable into 2 parts.") }
-        let expirationDate = try LicenseController.decrypt(date: licenseParts[0], with: publicKeyString)
+        let expirationDate = try LicenseController.decrypt(date: licenseParts[0], with: publicKeyString.removeSecKeyComments())
         let license = licenseParts[1]
         
         return (expirationDate, license)
