@@ -1,3 +1,11 @@
+<p align="center">
+    <a href="https://github.com/columbbus/Clavis/actions/" alt="CI Status">
+        <img src="https://github.com/columbbus/Clavis/workflows/Swift/badge.svg" /></a>
+    <img src="https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg" /></a>
+    <a href="https://github.com/columbbus/Clavis/releases" alt="Releases">
+        <img src="https://img.shields.io/github/v/tag/columbbus/Clavis" /></a>
+</p>
+
 # Clavis
 
 Clavis is a framework for easily generating and validating software licenses for your app.
